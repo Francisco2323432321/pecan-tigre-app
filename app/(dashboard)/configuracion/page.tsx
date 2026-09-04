@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
 import PageHeader from "@/components/ui/page-header";
 import { Icon } from "@/components/ui/icons";
+import SyncCatalogButton from "@/components/tiendanube/sync-catalog-button";
 
 export default async function ConfigPage() {
   const supabase = await createClient();
@@ -13,9 +14,15 @@ export default async function ConfigPage() {
     { data: events },
     { data: tiendanubeConnectionRaw },
   ] = await Promise.all([
-    supabase.from("products").select("id", { count: "exact", head: true }),
+    supabase.from("products").select("id", {
+      count: "exact",
+      head: true,
+    }),
 
-    supabase.from("orders").select("id", { count: "exact", head: true }),
+    supabase.from("orders").select("id", {
+      count: "exact",
+      head: true,
+    }),
 
     supabase
       .from("system_events")
@@ -75,6 +82,8 @@ export default async function ConfigPage() {
               }
               ok={Boolean(tiendanubeConnection)}
             />
+
+            {tiendanubeConnection && <SyncCatalogButton />}
 
             <Status
               icon="mail"
