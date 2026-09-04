@@ -1,211 +1,235 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentProfile } from "@/lib/auth";
-import PageHeader from "@/components/ui/page-header";
-import { Icon } from "@/components/ui/icons";
-import SyncCatalogButton from "@/components/tiendanube/sync-catalog-button";
+import { SyncCatalogButton } from "@/components/tiendanube/sync-catalog-button";
 
-export default async function ConfigPage() {
+type TiendanubeConnection = {
+  store_id: string;
+  connected_at: string;
+};
+
+export default async function ConfiguracionPage() {
   const supabase = await createClient();
   const profile = await getCurrentProfile();
 
   const [
-    { count: products },
-    { count: orders },
-    { data: events },
-    { data: tiendanubeConnectionRaw },
+    productsResult,
+    ordersResult,
+    eventsResult,
+    tiendanubeResult,
   ] = await Promise.all([
-    supabase.from("products").select("id", {
-      count: "exact",
-      head: true,
-    }),
+    supabase
+      .from("products")
+      .select("id", {
+        count: "exact",
+        head: true,
+      }),
 
-    supabase.from("orders").select("id", {
-      count: "exact",
-      head: true,
-    }),
+    supabase
+      .from("orders")
+      .select("id", {
+        count: "exact",
+        head: true,
+      }),
 
     supabase
       .from("system_events")
-      .select("id,severity,title,message,created_at")
-      .eq("resolved", false)
-      .order("created_at", { ascending: false })
-      .limit(8),
+      .select("id", {
+        count: "exact",
+        head: true,
+      }),
 
     supabase
       .rpc("get_tiendanube_connection_status")
       .maybeSingle(),
   ]);
 
-  const tiendanubeConnection = tiendanubeConnectionRaw as {
-    store_id: string;
-    connected_at: string;
-  } | null;
+  const tiendanubeConnection =
+    tiendanubeResult.data as TiendanubeConnection | null;
+
+  const productsCount = productsResult.count ?? 0;
+  const ordersCount = ordersResult.count ?? 0;
+  const eventsCount = eventsResult.count ?? 0;
 
   return (
-    <main className="w-full p-4 sm:p-5 md:p-6 xl:p-8">
-      <PageHeader
-        eyebrow="Sistema"
-        title="Configuración"
-        description="Estado técnico, integraciones y permisos del sistema."
-      />
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight text-zinc-900">
+          Configuración
+        </h1>
 
-      <div className="grid gap-4 xl:grid-cols-2">
-        <section className="pt-card p-4 sm:p-5">
-          <h2 className="font-bold text-[#3e2833]">
-            Estado del sistema
-          </h2>
+        <p className="mt-1 text-sm text-zinc-500">
+          Estado general e integraciones de Pecán Tigre.
+        </p>
+      </div>
 
-          <div className="mt-4 space-y-3">
+      <section className="grid gap-4 lg:grid-cols-2">
+        <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-zinc-900">
+              Sistema
+            </h2>
+
+            <p className="mt-1 text-sm text-zinc-500">
+              Estado de los servicios principales.
+            </p>
+          </div>
+
+          <div className="space-y-3">
             <Status
-              icon="check"
               label="Supabase"
-              detail={`Conectado · ${products ?? 0} productos`}
+              detail="Base de datos conectada"
               ok
             />
 
             <Status
-              icon="check"
               label="Autenticación"
-              detail={`${profile?.full_name ?? "Usuario"} · ${
-                profile?.role ?? ""
-              }`}
-              ok
+              detail={
+                profile
+                  ? "Sesión iniciada correctamente"
+                  : "Sin sesión activa"
+              }
+              ok={Boolean(profile)}
             />
 
             <Status
-              icon={tiendanubeConnection ? "check" : "clock"}
               label="Tiendanube"
               detail={
                 tiendanubeConnection
                   ? `Conectado · Tienda ${tiendanubeConnection.store_id}`
-                  : "Pendiente de conectar API y webhooks"
+                  : "Pendiente de conexión"
               }
               ok={Boolean(tiendanubeConnection)}
             />
 
-            {tiendanubeConnection && <SyncCatalogButton />}
-
             <Status
-              icon="mail"
               label="Emails"
               detail="Preparado para integrar Resend"
             />
           </div>
-        </section>
+        </div>
 
-        <section className="pt-card p-4 sm:p-5">
-          <h2 className="font-bold text-[#3e2833]">
+        <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+          <div className="mb-4">
+            <h2 className="text-base font-semibold text-zinc-900">
+              Tiendanube
+            </h2>
+
+            <p className="mt-1 text-sm text-zinc-500">
+              Vinculación del catálogo e integración con la tienda.
+            </p>
+          </div>
+
+          {tiendanubeConnection ? (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-green-200 bg-green-50 p-4">
+                <div className="font-medium text-green-900">
+                  ✓ Tiendanube conectada
+                </div>
+
+                <div className="mt-1 text-sm text-green-700">
+                  Tienda {tiendanubeConnection.store_id}
+                </div>
+              </div>
+
+              <SyncCatalogButton />
+
+              <p className="text-xs leading-5 text-zinc-500">
+                Vincula productos y variantes por SKU y obtiene
+                imágenes desde Tiendanube.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-900">
+              Primero conectá Tiendanube para poder sincronizar
+              el catálogo.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section>
+        <div className="mb-3">
+          <h2 className="text-base font-semibold text-zinc-900">
             Datos
           </h2>
 
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <Box
-              label="Productos"
-              value={String(products ?? 0)}
-            />
-
-            <Box
-              label="Pedidos"
-              value={String(orders ?? 0)}
-            />
-          </div>
-
-          <p className="mt-4 text-xs leading-5 text-[#80616f]">
-            La aplicación usa PostgreSQL/Supabase como fuente central.
-            La lógica crítica de stock se ejecuta en la base, no en el navegador.
+          <p className="mt-1 text-sm text-zinc-500">
+            Resumen rápido de la información almacenada.
           </p>
-        </section>
-      </div>
-
-      <section className="pt-card mt-4 overflow-hidden">
-        <div className="border-b border-[#f2e0e8] px-4 py-4 sm:px-5">
-          <h2 className="font-bold text-[#3e2833]">
-            Incidencias
-          </h2>
         </div>
 
-        {(events ?? []).length === 0 ? (
-          <div className="p-5 text-sm text-[#80616f]">
-            Sin incidencias activas.
-          </div>
-        ) : (
-          <div className="divide-y divide-[#f5e7ed]">
-            {(events ?? []).map((e) => (
-              <div
-                key={e.id}
-                className="p-4 sm:px-5"
-              >
-                <p className="text-sm font-bold text-[#3e2833]">
-                  {e.title}
-                </p>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <DataCard
+            label="Productos"
+            value={productsCount}
+          />
 
-                <p className="mt-0.5 text-xs text-[#80616f]">
-                  {e.message}
-                </p>
-              </div>
-            ))}
-          </div>
-        )}
+          <DataCard
+            label="Pedidos"
+            value={ordersCount}
+          />
+
+          <DataCard
+            label="Eventos del sistema"
+            value={eventsCount}
+          />
+        </div>
       </section>
-    </main>
+    </div>
   );
 }
 
 function Status({
-  icon,
   label,
   detail,
-  ok,
+  ok = false,
 }: {
-  icon: Parameters<typeof Icon>[0]["name"];
   label: string;
   detail: string;
   ok?: boolean;
 }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl bg-[#fffafd] p-3">
-      <span
-        className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+    <div className="flex items-start gap-3 rounded-xl border border-zinc-100 bg-zinc-50/70 p-3">
+      <div
+        className={[
+          "flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold",
           ok
-            ? "bg-[#eef7f2] text-[#36785b]"
-            : "bg-[#fff5e8] text-[#9c6628]"
-        }`}
+            ? "bg-green-100 text-green-700"
+            : "bg-zinc-100 text-zinc-500",
+        ].join(" ")}
       >
-        <Icon
-          name={icon}
-          className="h-4 w-4"
-        />
-      </span>
+        {ok ? "✓" : "•"}
+      </div>
 
       <div className="min-w-0">
-        <p className="text-sm font-bold text-[#3e2833]">
+        <div className="text-sm font-medium text-zinc-900">
           {label}
-        </p>
+        </div>
 
-        <p className="mt-0.5 text-xs text-[#80616f]">
+        <div className="mt-0.5 text-xs leading-5 text-zinc-500">
           {detail}
-        </p>
+        </div>
       </div>
     </div>
   );
 }
 
-function Box({
+function DataCard({
   label,
   value,
 }: {
   label: string;
-  value: string;
+  value: number;
 }) {
   return (
-    <div className="rounded-xl bg-[#fff0f6] p-3">
-      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9e6b80]">
-        {label}
-      </p>
-
-      <p className="mt-1 text-2xl font-extrabold text-[#3e2833]">
+    <div className="rounded-2xl border border-pink-100 bg-white p-5 shadow-sm">
+      <div className="text-2xl font-semibold tracking-tight text-zinc-900">
         {value}
-      </p>
+      </div>
+
+      <div className="mt-1 text-sm text-zinc-500">
+        {label}
+      </div>
     </div>
   );
 }
