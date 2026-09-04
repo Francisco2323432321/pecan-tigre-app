@@ -1,7 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const publicPaths = ["/login", "/login/recuperar", "/auth/update-password"];
+const publicPaths = [
+  "/login",
+  "/login/recuperar",
+  "/auth/update-password",
+  "/api/tiendanube/callback",
+  "/api/tiendanube/privacy",
+];
 
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });
