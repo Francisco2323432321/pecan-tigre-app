@@ -11,23 +11,28 @@ export default async function ConfigPage() {
     { count: products },
     { count: orders },
     { data: events },
-    { data: tiendanubeConnection },
+    { data: tiendanubeConnectionRaw },
   ] = await Promise.all([
     supabase.from("products").select("id", { count: "exact", head: true }),
+
     supabase.from("orders").select("id", { count: "exact", head: true }),
+
     supabase
       .from("system_events")
       .select("id,severity,title,message,created_at")
       .eq("resolved", false)
       .order("created_at", { ascending: false })
       .limit(8),
+
     supabase
-      .from("tiendanube_connections")
-      .select("store_id,connected_at")
-      .order("connected_at", { ascending: false })
-      .limit(1)
+      .rpc("get_tiendanube_connection_status")
       .maybeSingle(),
   ]);
+
+  const tiendanubeConnection = tiendanubeConnectionRaw as {
+    store_id: string;
+    connected_at: string;
+  } | null;
 
   return (
     <main className="w-full p-4 sm:p-5 md:p-6 xl:p-8">
@@ -39,7 +44,9 @@ export default async function ConfigPage() {
 
       <div className="grid gap-4 xl:grid-cols-2">
         <section className="pt-card p-4 sm:p-5">
-          <h2 className="font-bold text-[#3e2833]">Estado del sistema</h2>
+          <h2 className="font-bold text-[#3e2833]">
+            Estado del sistema
+          </h2>
 
           <div className="mt-4 space-y-3">
             <Status
@@ -52,7 +59,9 @@ export default async function ConfigPage() {
             <Status
               icon="check"
               label="Autenticación"
-              detail={`${profile?.full_name ?? "Usuario"} · ${profile?.role ?? ""}`}
+              detail={`${profile?.full_name ?? "Usuario"} · ${
+                profile?.role ?? ""
+              }`}
               ok
             />
 
@@ -76,23 +85,34 @@ export default async function ConfigPage() {
         </section>
 
         <section className="pt-card p-4 sm:p-5">
-          <h2 className="font-bold text-[#3e2833]">Datos</h2>
+          <h2 className="font-bold text-[#3e2833]">
+            Datos
+          </h2>
 
           <div className="mt-4 grid grid-cols-2 gap-3">
-            <Box label="Productos" value={String(products ?? 0)} />
-            <Box label="Pedidos" value={String(orders ?? 0)} />
+            <Box
+              label="Productos"
+              value={String(products ?? 0)}
+            />
+
+            <Box
+              label="Pedidos"
+              value={String(orders ?? 0)}
+            />
           </div>
 
           <p className="mt-4 text-xs leading-5 text-[#80616f]">
-            La aplicación usa PostgreSQL/Supabase como fuente central. La lógica
-            crítica de stock se ejecuta en la base, no en el navegador.
+            La aplicación usa PostgreSQL/Supabase como fuente central.
+            La lógica crítica de stock se ejecuta en la base, no en el navegador.
           </p>
         </section>
       </div>
 
       <section className="pt-card mt-4 overflow-hidden">
         <div className="border-b border-[#f2e0e8] px-4 py-4 sm:px-5">
-          <h2 className="font-bold text-[#3e2833]">Incidencias</h2>
+          <h2 className="font-bold text-[#3e2833]">
+            Incidencias
+          </h2>
         </div>
 
         {(events ?? []).length === 0 ? (
@@ -102,9 +122,17 @@ export default async function ConfigPage() {
         ) : (
           <div className="divide-y divide-[#f5e7ed]">
             {(events ?? []).map((e) => (
-              <div key={e.id} className="p-4 sm:px-5">
-                <p className="text-sm font-bold text-[#3e2833]">{e.title}</p>
-                <p className="mt-0.5 text-xs text-[#80616f]">{e.message}</p>
+              <div
+                key={e.id}
+                className="p-4 sm:px-5"
+              >
+                <p className="text-sm font-bold text-[#3e2833]">
+                  {e.title}
+                </p>
+
+                <p className="mt-0.5 text-xs text-[#80616f]">
+                  {e.message}
+                </p>
               </div>
             ))}
           </div>
@@ -134,24 +162,41 @@ function Status({
             : "bg-[#fff5e8] text-[#9c6628]"
         }`}
       >
-        <Icon name={icon} className="h-4 w-4" />
+        <Icon
+          name={icon}
+          className="h-4 w-4"
+        />
       </span>
 
-      <div>
-        <p className="text-sm font-bold text-[#3e2833]">{label}</p>
-        <p className="mt-0.5 text-xs text-[#80616f]">{detail}</p>
+      <div className="min-w-0">
+        <p className="text-sm font-bold text-[#3e2833]">
+          {label}
+        </p>
+
+        <p className="mt-0.5 text-xs text-[#80616f]">
+          {detail}
+        </p>
       </div>
     </div>
   );
 }
 
-function Box({ label, value }: { label: string; value: string }) {
+function Box({
+  label,
+  value,
+}: {
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-xl bg-[#fff0f6] p-3">
       <p className="text-[10px] font-bold uppercase tracking-wide text-[#9e6b80]">
         {label}
       </p>
-      <p className="mt-1 text-2xl font-extrabold text-[#3e2833]">{value}</p>
+
+      <p className="mt-1 text-2xl font-extrabold text-[#3e2833]">
+        {value}
+      </p>
     </div>
   );
 }
