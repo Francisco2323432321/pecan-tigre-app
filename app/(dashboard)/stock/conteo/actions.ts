@@ -1,4 +1,5 @@
 "use server";
+import { syncTiendanubeStock } from "@/lib/tiendanube-stock";
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -14,6 +15,7 @@ export async function applyStockCount(formData: FormData) {
   const supabase = await createClient();
   const { error } = await supabase.rpc("apply_stock_count", { p_items: items, p_notes: notes || null });
   if (error) throw new Error(error.message);
+  await syncTiendanubeStock().catch((e)=>console.error("[auto-stock] conteo",e));
   revalidatePath("/stock");
   revalidatePath("/stock/conteo");
   revalidatePath("/");

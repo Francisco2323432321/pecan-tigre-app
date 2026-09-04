@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { exchangeAuthorizationCode, tiendanubeAdmin } from "@/lib/tiendanube";
+import { ensureTiendanubeOrderWebhooks } from "@/lib/tiendanube-webhooks";
 
 export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
@@ -8,9 +9,19 @@ export async function GET(request: NextRequest) {
   try {
     const { accessToken, storeId, scope } = await exchangeAuthorizationCode(code);
     const { error } = await tiendanubeAdmin().from("tiendanube_connections").upsert({
-      store_id: String(storeId), access_token: accessToken, scope, connected_at: new Date().toISOString(),
+      store_id: String(storeId),
+      access_token: accessToken,
+      scope,
+      connected_at: new Date().toISOString(),
     }, { onConflict: "store_id" });
     if (error) throw error;
+
+    try {
+      await ensureTiendanubeOrderWebhooks(storeId, accessToken, request.nextUrl.origin);
+    } catch (webhookError) {
+      console.error("[Tiendanube OAuth] La conexión quedó guardada, pero falló el alta automática de webhooks:", webhookError);
+    }
+
     return NextResponse.redirect(new URL("/configuracion?tiendanube=connected", request.url));
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "No se pudo conectar Tiendanube." }, { status: 500 });

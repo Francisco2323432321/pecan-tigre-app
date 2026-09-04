@@ -8,6 +8,7 @@ const publicPaths = [
   "/tiendanube/callback",
   "/api/tiendanube/callback",
   "/api/tiendanube/privacy",
+  "/api/tiendanube/webhooks",
 ];
 
 export async function updateSession(request: NextRequest) {
