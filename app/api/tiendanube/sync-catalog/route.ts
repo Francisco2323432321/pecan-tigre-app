@@ -22,10 +22,17 @@ type TNProduct = {
   variants?: TNVariant[];
 };
 
+type LocalVariant = {
+  id: string;
+  product_id: string;
+  sku: string | null;
+};
+
 export async function POST() {
   try {
     const supabase = tiendanubeAdmin();
 
+    // 1. Obtener conexión Tiendanube
     const { data: connection, error: connectionError } = await supabase
       .from("tiendanube_connections")
       .select("store_id,access_token")
@@ -53,6 +60,28 @@ export async function POST() {
       );
     }
 
+    // 2. Traer todas las variantes locales una sola vez
+    const { data: localVariantsRaw, error: localVariantsError } = await supabase
+      .from("product_variants")
+      .select("id,product_id,sku");
+
+    if (localVariantsError) {
+      throw new Error(localVariantsError.message);
+    }
+
+    const localVariants = (localVariantsRaw ?? []) as LocalVariant[];
+
+    const skuMap = new Map<string, LocalVariant>();
+
+    for (const variant of localVariants) {
+      const sku = variant.sku?.trim();
+
+      if (sku) {
+        skuMap.set(sku, variant);
+      }
+    }
+
+    // 3. Traer productos Tiendanube
     const response = await fetch(
       tiendanubeApiUrl(connection.store_id, "products?per_page=200"),
       {
@@ -81,11 +110,28 @@ export async function POST() {
     const products = (await response.json()) as TNProduct[];
 
     let linkedVariants = 0;
-    let linkedProducts = 0;
     let unmatchedVariants = 0;
     let imagesUpdated = 0;
 
     const matchedProductIds = new Set<string>();
+
+    // Guardamos actualizaciones para productos padre
+    const productUpdates = new Map<
+      string,
+      {
+        tiendanube_product_id: string;
+        tiendanube_last_sync_at: string;
+        tiendanube_handle?: string;
+        image_url?: string;
+      }
+    >();
+
+    // 4. Preparar updates de variantes
+    const variantUpdates: Array<{
+      id: string;
+      tiendanube_variant_id: string;
+      tiendanube_stock: number | null;
+    }> = [];
 
     for (const tnProduct of products) {
       const imageUrl = tnProduct.images?.[0]?.src ?? null;
@@ -98,43 +144,28 @@ export async function POST() {
           continue;
         }
 
-        const { data: localVariant, error: variantError } = await supabase
-          .from("product_variants")
-          .select("id,product_id,sku")
-          .eq("sku", sku)
-          .maybeSingle();
-
-        if (variantError) {
-          console.error("Error buscando SKU", sku, variantError);
-          continue;
-        }
+        const localVariant = skuMap.get(sku);
 
         if (!localVariant) {
           unmatchedVariants++;
           continue;
         }
 
-        const { error: updateVariantError } = await supabase
-          .from("product_variants")
-          .update({
-            tiendanube_variant_id: String(tnVariant.id),
-            tiendanube_stock: tnVariant.stock ?? null,
-          })
-          .eq("id", localVariant.id);
-
-        if (updateVariantError) {
-          console.error(
-            "Error actualizando variante",
-            sku,
-            updateVariantError
-          );
-          continue;
-        }
+        variantUpdates.push({
+          id: localVariant.id,
+          tiendanube_variant_id: String(tnVariant.id),
+          tiendanube_stock: tnVariant.stock ?? null,
+        });
 
         linkedVariants++;
         matchedProductIds.add(localVariant.product_id);
 
-        const productUpdate: Record<string, unknown> = {
+        const productUpdate: {
+          tiendanube_product_id: string;
+          tiendanube_last_sync_at: string;
+          tiendanube_handle?: string;
+          image_url?: string;
+        } = {
           tiendanube_product_id: String(tnProduct.id),
           tiendanube_last_sync_at: new Date().toISOString(),
         };
@@ -149,29 +180,68 @@ export async function POST() {
           productUpdate.image_url = imageUrl;
         }
 
-        const { error: updateProductError } = await supabase
-          .from("products")
-          .update(productUpdate)
-          .eq("id", localVariant.product_id);
-
-        if (updateProductError) {
-          console.error(
-            "Error actualizando producto",
-            localVariant.product_id,
-            updateProductError
-          );
-        } else if (imageUrl) {
-          imagesUpdated++;
-        }
+        productUpdates.set(localVariant.product_id, productUpdate);
       }
     }
 
-    linkedProducts = matchedProductIds.size;
+    // 5. Actualizar variantes en paralelo, pero en lotes pequeños
+    const VARIANT_BATCH_SIZE = 20;
+
+    for (let i = 0; i < variantUpdates.length; i += VARIANT_BATCH_SIZE) {
+      const batch = variantUpdates.slice(i, i + VARIANT_BATCH_SIZE);
+
+      await Promise.all(
+        batch.map(async (update) => {
+          const { error } = await supabase
+            .from("product_variants")
+            .update({
+              tiendanube_variant_id: update.tiendanube_variant_id,
+              tiendanube_stock: update.tiendanube_stock,
+            })
+            .eq("id", update.id);
+
+          if (error) {
+            console.error(
+              "Error actualizando variante",
+              update.id,
+              error.message
+            );
+          }
+        })
+      );
+    }
+
+    // 6. Actualizar cada producto padre una sola vez
+    const productEntries = Array.from(productUpdates.entries());
+    const PRODUCT_BATCH_SIZE = 10;
+
+    for (let i = 0; i < productEntries.length; i += PRODUCT_BATCH_SIZE) {
+      const batch = productEntries.slice(i, i + PRODUCT_BATCH_SIZE);
+
+      await Promise.all(
+        batch.map(async ([productId, update]) => {
+          const { error } = await supabase
+            .from("products")
+            .update(update)
+            .eq("id", productId);
+
+          if (error) {
+            console.error(
+              "Error actualizando producto",
+              productId,
+              error.message
+            );
+          } else if (update.image_url) {
+            imagesUpdated++;
+          }
+        })
+      );
+    }
 
     return NextResponse.json({
       ok: true,
       tiendanubeProducts: products.length,
-      linkedProducts,
+      linkedProducts: matchedProductIds.size,
       linkedVariants,
       unmatchedVariants,
       imagesUpdated,
