@@ -24,16 +24,27 @@ export default function SyncCatalogButton() {
     try {
       const response = await fetch("/api/tiendanube/sync-catalog", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        credentials: "same-origin",
       });
 
-      const data = (await response.json()) as SyncResult;
+      const contentType = response.headers.get("content-type") ?? "";
+      const rawText = await response.text();
+
+      if (!contentType.includes("application/json")) {
+        setResult({
+          error: `El servidor respondió HTTP ${response.status}`,
+          detail:
+            rawText.slice(0, 500) ||
+            "La respuesta no contenía información adicional.",
+        });
+        return;
+      }
+
+      const data = JSON.parse(rawText) as SyncResult;
 
       if (!response.ok) {
         setResult({
-          error: data.error ?? "No se pudo sincronizar el catálogo.",
+          error: data.error ?? `Error HTTP ${response.status}`,
           detail: data.detail,
         });
         return;
@@ -99,12 +110,15 @@ export default function SyncCatalogButton() {
       {result?.error && (
         <div className="mt-3 rounded-xl border border-[#f2ccd8] bg-[#fff4f7] p-4 text-sm text-[#9a3659]">
           <p className="font-bold">No se pudo sincronizar</p>
-          <p className="mt-1 text-xs">{result.error}</p>
+
+          <p className="mt-1 text-xs">
+            {result.error}
+          </p>
 
           {result.detail && (
-            <p className="mt-1 break-words text-xs opacity-80">
+            <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-words rounded-lg bg-white/60 p-2 text-[11px]">
               {result.detail}
-            </p>
+            </pre>
           )}
         </div>
       )}
