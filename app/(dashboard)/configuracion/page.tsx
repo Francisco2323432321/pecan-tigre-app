@@ -1,4 +1,157 @@
-import {createClient} from "@/lib/supabase/server";import {getCurrentProfile} from "@/lib/auth";import PageHeader from "@/components/ui/page-header";import {Icon} from "@/components/ui/icons";
-export default async function ConfigPage(){const supabase=await createClient();const profile=await getCurrentProfile();const[{count:products},{count:orders},{data:events}]=await Promise.all([supabase.from("products").select("id",{count:"exact",head:true}),supabase.from("orders").select("id",{count:"exact",head:true}),supabase.from("system_events").select("id,severity,title,message,created_at").eq("resolved",false).order("created_at",{ascending:false}).limit(8)]);return <main className="w-full p-4 sm:p-5 md:p-6 xl:p-8"><PageHeader eyebrow="Sistema" title="Configuración" description="Estado técnico, integraciones y permisos del sistema."/><div className="grid gap-4 xl:grid-cols-2"><section className="pt-card p-4 sm:p-5"><h2 className="font-bold text-[#3e2833]">Estado del sistema</h2><div className="mt-4 space-y-3"><Status icon="check" label="Supabase" detail={`Conectado · ${products??0} productos`} ok/><Status icon="check" label="Autenticación" detail={`${profile?.full_name??"Usuario"} · ${profile?.role??""}`} ok/><Status icon="clock" label="Tiendanube" detail="Pendiente de conectar API y webhooks"/><Status icon="mail" label="Emails" detail="Preparado para integrar Resend"/></div></section><section className="pt-card p-4 sm:p-5"><h2 className="font-bold text-[#3e2833]">Datos</h2><div className="mt-4 grid grid-cols-2 gap-3"><Box label="Productos" value={String(products??0)}/><Box label="Pedidos" value={String(orders??0)}/></div><p className="mt-4 text-xs leading-5 text-[#80616f]">La aplicación usa PostgreSQL/Supabase como fuente central. La lógica crítica de stock se ejecuta en la base, no en el navegador.</p></section></div><section className="pt-card mt-4 overflow-hidden"><div className="border-b border-[#f2e0e8] px-4 py-4 sm:px-5"><h2 className="font-bold text-[#3e2833]">Incidencias</h2></div>{(events??[]).length===0?<div className="p-5 text-sm text-[#80616f]">Sin incidencias activas.</div>:<div className="divide-y divide-[#f5e7ed]">{(events??[]).map(e=><div key={e.id} className="p-4 sm:px-5"><p className="text-sm font-bold text-[#3e2833]">{e.title}</p><p className="mt-0.5 text-xs text-[#80616f]">{e.message}</p></div>)}</div>}</section></main>}
-function Status({icon,label,detail,ok}:{icon:Parameters<typeof Icon>[0]["name"];label:string;detail:string;ok?:boolean}){return <div className="flex items-center gap-3 rounded-xl bg-[#fffafd] p-3"><span className={`flex h-9 w-9 items-center justify-center rounded-xl ${ok?"bg-[#eef7f2] text-[#36785b]":"bg-[#fff5e8] text-[#9c6628]"}`}><Icon name={icon} className="h-4 w-4"/></span><div><p className="text-sm font-bold text-[#3e2833]">{label}</p><p className="mt-0.5 text-xs text-[#80616f]">{detail}</p></div></div>}
-function Box({label,value}:{label:string;value:string}){return <div className="rounded-xl bg-[#fff0f6] p-3"><p className="text-[10px] font-bold uppercase tracking-wide text-[#9e6b80]">{label}</p><p className="mt-1 text-2xl font-extrabold text-[#3e2833]">{value}</p></div>}
+import { createClient } from "@/lib/supabase/server";
+import { getCurrentProfile } from "@/lib/auth";
+import PageHeader from "@/components/ui/page-header";
+import { Icon } from "@/components/ui/icons";
+
+export default async function ConfigPage() {
+  const supabase = await createClient();
+  const profile = await getCurrentProfile();
+
+  const [
+    { count: products },
+    { count: orders },
+    { data: events },
+    { data: tiendanubeConnection },
+  ] = await Promise.all([
+    supabase.from("products").select("id", { count: "exact", head: true }),
+    supabase.from("orders").select("id", { count: "exact", head: true }),
+    supabase
+      .from("system_events")
+      .select("id,severity,title,message,created_at")
+      .eq("resolved", false)
+      .order("created_at", { ascending: false })
+      .limit(8),
+    supabase
+      .from("tiendanube_connections")
+      .select("store_id,connected_at")
+      .order("connected_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
+
+  return (
+    <main className="w-full p-4 sm:p-5 md:p-6 xl:p-8">
+      <PageHeader
+        eyebrow="Sistema"
+        title="Configuración"
+        description="Estado técnico, integraciones y permisos del sistema."
+      />
+
+      <div className="grid gap-4 xl:grid-cols-2">
+        <section className="pt-card p-4 sm:p-5">
+          <h2 className="font-bold text-[#3e2833]">Estado del sistema</h2>
+
+          <div className="mt-4 space-y-3">
+            <Status
+              icon="check"
+              label="Supabase"
+              detail={`Conectado · ${products ?? 0} productos`}
+              ok
+            />
+
+            <Status
+              icon="check"
+              label="Autenticación"
+              detail={`${profile?.full_name ?? "Usuario"} · ${profile?.role ?? ""}`}
+              ok
+            />
+
+            <Status
+              icon={tiendanubeConnection ? "check" : "clock"}
+              label="Tiendanube"
+              detail={
+                tiendanubeConnection
+                  ? `Conectado · Tienda ${tiendanubeConnection.store_id}`
+                  : "Pendiente de conectar API y webhooks"
+              }
+              ok={Boolean(tiendanubeConnection)}
+            />
+
+            <Status
+              icon="mail"
+              label="Emails"
+              detail="Preparado para integrar Resend"
+            />
+          </div>
+        </section>
+
+        <section className="pt-card p-4 sm:p-5">
+          <h2 className="font-bold text-[#3e2833]">Datos</h2>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <Box label="Productos" value={String(products ?? 0)} />
+            <Box label="Pedidos" value={String(orders ?? 0)} />
+          </div>
+
+          <p className="mt-4 text-xs leading-5 text-[#80616f]">
+            La aplicación usa PostgreSQL/Supabase como fuente central. La lógica
+            crítica de stock se ejecuta en la base, no en el navegador.
+          </p>
+        </section>
+      </div>
+
+      <section className="pt-card mt-4 overflow-hidden">
+        <div className="border-b border-[#f2e0e8] px-4 py-4 sm:px-5">
+          <h2 className="font-bold text-[#3e2833]">Incidencias</h2>
+        </div>
+
+        {(events ?? []).length === 0 ? (
+          <div className="p-5 text-sm text-[#80616f]">
+            Sin incidencias activas.
+          </div>
+        ) : (
+          <div className="divide-y divide-[#f5e7ed]">
+            {(events ?? []).map((e) => (
+              <div key={e.id} className="p-4 sm:px-5">
+                <p className="text-sm font-bold text-[#3e2833]">{e.title}</p>
+                <p className="mt-0.5 text-xs text-[#80616f]">{e.message}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function Status({
+  icon,
+  label,
+  detail,
+  ok,
+}: {
+  icon: Parameters<typeof Icon>[0]["name"];
+  label: string;
+  detail: string;
+  ok?: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl bg-[#fffafd] p-3">
+      <span
+        className={`flex h-9 w-9 items-center justify-center rounded-xl ${
+          ok
+            ? "bg-[#eef7f2] text-[#36785b]"
+            : "bg-[#fff5e8] text-[#9c6628]"
+        }`}
+      >
+        <Icon name={icon} className="h-4 w-4" />
+      </span>
+
+      <div>
+        <p className="text-sm font-bold text-[#3e2833]">{label}</p>
+        <p className="mt-0.5 text-xs text-[#80616f]">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+function Box({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl bg-[#fff0f6] p-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-[#9e6b80]">
+        {label}
+      </p>
+      <p className="mt-1 text-2xl font-extrabold text-[#3e2833]">{value}</p>
+    </div>
+  );
+}
