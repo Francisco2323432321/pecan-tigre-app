@@ -1,0 +1,3 @@
+/* eslint-disable @next/next/no-img-element */
+import { Icon } from "@/components/ui/icons";
+export default function ProductImage({src,alt,size="md"}:{src?:string|null;alt:string;size?:"sm"|"md"|"lg"}){const cls=size==="sm"?"h-11 w-11":size==="lg"?"h-28 w-28 sm:h-36 sm:w-36":"h-14 w-14";return <div className={`${cls} relative shrink-0 overflow-hidden rounded-2xl border border-[#f1dce5] bg-gradient-to-br from-[#fff0f6] to-[#fff9fc]`}>{src?<img src={src} alt={alt} className="h-full w-full object-cover" loading="lazy"/>:<div className="flex h-full w-full items-center justify-center text-[#ca7c9d]"><Icon name="package" className={size==="lg"?"h-10 w-10":"h-5 w-5"}/></div>}</div>}
