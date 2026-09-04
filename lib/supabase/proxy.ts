@@ -5,6 +5,7 @@ const publicPaths = [
   "/login",
   "/login/recuperar",
   "/auth/update-password",
+  "/tiendanube/callback",
   "/api/tiendanube/callback",
   "/api/tiendanube/privacy",
 ];
