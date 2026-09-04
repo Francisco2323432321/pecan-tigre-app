@@ -23,7 +23,7 @@
   "kv_namespaces": [
     {
       "binding": "VINEXT_KV_CACHE",
-      "id": "<your-kv-namespace-id>"
+      "id": "2bfbd548853d4a89a2a112676b51fc1a"
     }
   ]
 }
