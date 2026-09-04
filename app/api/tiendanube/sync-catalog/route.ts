@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
-import { tiendanubeAdmin, tiendanubeApiUrl } from "@/lib/tiendanube";
+import {
+  tiendanubeAdmin,
+  tiendanubeApiUrl,
+} from "@/lib/tiendanube";
 
 type TNImage = {
   id?: number | string;
@@ -27,62 +30,91 @@ type LocalVariant = {
 };
 
 type ProductLink = {
-  localProductId: string;
-  tnProductId: string;
-  handle?: string;
-  images?: TNImage[];
+  id: string;
+  tiendanube_product_id: string;
+  tiendanube_handle: string | null;
+  image_url: string | null;
 };
 
-function normalizeSku(value: string | null | undefined) {
+function normalizeSku(value?: string | null) {
   return value?.trim() ?? "";
 }
 
-function chooseMainImage(images: TNImage[] | null | undefined) {
-  if (!images || images.length === 0) return null;
+function getHandle(product: TNProduct) {
+  if (typeof product.handle === "string") {
+    return product.handle;
+  }
 
-  const validImages = images.filter(
+  if (product.handle?.es) {
+    return product.handle.es;
+  }
+
+  return null;
+}
+
+function chooseMainImage(
+  images?: TNImage[] | null
+): string | null {
+  if (!images?.length) {
+    return null;
+  }
+
+  const valid = images.filter(
     (image) =>
-      typeof image?.src === "string" &&
+      typeof image.src === "string" &&
       image.src.trim().length > 0
   );
 
-  if (validImages.length === 0) return null;
+  if (!valid.length) {
+    return null;
+  }
 
   const main =
-    validImages.find((image) => Number(image.position) === 1) ??
-    [...validImages].sort(
+    valid.find(
+      (image) => Number(image.position) === 1
+    ) ??
+    [...valid].sort(
       (a, b) =>
         Number(a.position ?? 9999) -
         Number(b.position ?? 9999)
     )[0];
 
-  return main?.src?.trim() || null;
+  return main?.src?.trim() ?? null;
 }
 
 function extractImages(payload: unknown): TNImage[] {
-  // Forma normal: [...]
   if (Array.isArray(payload)) {
     return payload as TNImage[];
   }
 
-  // Fallback por si la API responde { data: [...] }
   if (
     payload &&
     typeof payload === "object" &&
     "data" in payload &&
-    Array.isArray((payload as { data?: unknown }).data)
+    Array.isArray(
+      (payload as { data?: unknown }).data
+    )
   ) {
-    return (payload as { data: TNImage[] }).data;
+    return (
+      payload as {
+        data: TNImage[];
+      }
+    ).data;
   }
 
-  // Otro fallback posible: { images: [...] }
   if (
     payload &&
     typeof payload === "object" &&
     "images" in payload &&
-    Array.isArray((payload as { images?: unknown }).images)
+    Array.isArray(
+      (payload as { images?: unknown }).images
+    )
   ) {
-    return (payload as { images: TNImage[] }).images;
+    return (
+      payload as {
+        images: TNImage[];
+      }
+    ).images;
   }
 
   return [];
@@ -93,20 +125,22 @@ export async function POST() {
     const supabase = tiendanubeAdmin();
 
     /*
-     * 1. CONEXIÓN TIENDANUBE
+     * CONEXIÓN
      */
-    const { data: connection, error: connectionError } =
-      await supabase
-        .from("tiendanube_connections")
-        .select("store_id,access_token")
-        .order("connected_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+    const {
+      data: connection,
+      error: connectionError,
+    } = await supabase
+      .from("tiendanube_connections")
+      .select("store_id,access_token")
+      .order("connected_at", {
+        ascending: false,
+      })
+      .limit(1)
+      .maybeSingle();
 
     if (connectionError) {
-      throw new Error(
-        `Error leyendo conexión Tiendanube: ${connectionError.message}`
-      );
+      throw new Error(connectionError.message);
     }
 
     if (!connection) {
@@ -119,7 +153,8 @@ export async function POST() {
       );
     }
 
-    const appId = process.env.TIENDANUBE_APP_ID;
+    const appId =
+      process.env.TIENDANUBE_APP_ID;
 
     if (!appId) {
       return NextResponse.json(
@@ -132,14 +167,17 @@ export async function POST() {
     }
 
     const headers = {
-      Authorization: `Bearer ${connection.access_token}`,
-      "User-Agent": `Pecan Tigre (${appId})`,
+      Authorization:
+        `Bearer ${connection.access_token}`,
+      "User-Agent":
+        `Pecan Tigre (${appId})`,
       Accept: "application/json",
-      "Content-Type": "application/json",
     };
 
     /*
-     * 2. LEER TODAS LAS VARIANTES LOCALES UNA SOLA VEZ
+     * VARIANTES LOCALES
+     *
+     * UNA sola consulta a Supabase.
      */
     const {
       data: localVariantsRaw,
@@ -150,17 +188,19 @@ export async function POST() {
 
     if (localVariantsError) {
       throw new Error(
-        `Error leyendo variantes locales: ${localVariantsError.message}`
+        localVariantsError.message
       );
     }
 
     const localVariants =
       (localVariantsRaw ?? []) as LocalVariant[];
 
-    const skuMap = new Map<string, LocalVariant>();
+    const skuMap =
+      new Map<string, LocalVariant>();
 
     for (const variant of localVariants) {
-      const sku = normalizeSku(variant.sku);
+      const sku =
+        normalizeSku(variant.sku);
 
       if (sku) {
         skuMap.set(sku, variant);
@@ -168,7 +208,7 @@ export async function POST() {
     }
 
     /*
-     * 3. LEER PRODUCTOS DE TIENDANUBE
+     * PRODUCTOS TIENDANUBE
      */
     const productsResponse = await fetch(
       tiendanubeApiUrl(
@@ -176,161 +216,124 @@ export async function POST() {
         "products?per_page=200"
       ),
       {
-        method: "GET",
         headers,
         cache: "no-store",
       }
     );
 
     if (!productsResponse.ok) {
-      const detail = await productsResponse.text();
+      const detail =
+        await productsResponse.text();
 
       return NextResponse.json(
         {
           ok: false,
           error:
             "Tiendanube rechazó la consulta de productos",
-          status: productsResponse.status,
+          status:
+            productsResponse.status,
           detail,
         },
         { status: 502 }
       );
     }
 
-    const productPayload: unknown =
+    const payload: unknown =
       await productsResponse.json();
 
-    if (!Array.isArray(productPayload)) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error:
-            "La API de Tiendanube devolvió productos en un formato inesperado",
-        },
-        { status: 502 }
+    if (!Array.isArray(payload)) {
+      throw new Error(
+        "Formato inesperado de productos Tiendanube"
       );
     }
 
-    const tnProducts = productPayload as TNProduct[];
+    const tnProducts =
+      payload as TNProduct[];
 
     /*
-     * 4. VINCULAR PRODUCTOS Y VARIANTES POR SKU
+     * PREPARAR DATOS
      */
-    const variantUpdates: Array<{
+    const variantsToUpdate: Array<{
       id: string;
       tiendanube_variant_id: string;
       tiendanube_stock: number | null;
     }> = [];
 
-    const productLinks = new Map<string, ProductLink>();
+    const productLinks =
+      new Map<
+        string,
+        {
+          localProductId: string;
+          tnProduct: TNProduct;
+        }
+      >();
 
     let linkedVariants = 0;
     let unmatchedVariants = 0;
 
-    const unmatchedSkus: string[] = [];
-
     for (const tnProduct of tnProducts) {
-      const tnProductId = String(tnProduct.id);
-
-      for (const tnVariant of tnProduct.variants ?? []) {
-        const sku = normalizeSku(tnVariant.sku);
+      for (
+        const tnVariant of
+        tnProduct.variants ?? []
+      ) {
+        const sku =
+          normalizeSku(tnVariant.sku);
 
         if (!sku) {
           unmatchedVariants++;
           continue;
         }
 
-        const localVariant = skuMap.get(sku);
+        const localVariant =
+          skuMap.get(sku);
 
         if (!localVariant) {
           unmatchedVariants++;
-          unmatchedSkus.push(sku);
           continue;
         }
 
-        variantUpdates.push({
+        variantsToUpdate.push({
           id: localVariant.id,
-          tiendanube_variant_id: String(tnVariant.id),
+
+          tiendanube_variant_id:
+            String(tnVariant.id),
+
           tiendanube_stock:
-            typeof tnVariant.stock === "number"
+            typeof tnVariant.stock ===
+            "number"
               ? tnVariant.stock
               : null,
         });
 
         linkedVariants++;
 
-        let handle: string | undefined;
+        productLinks.set(
+          localVariant.product_id,
+          {
+            localProductId:
+              localVariant.product_id,
 
-        if (typeof tnProduct.handle === "string") {
-          handle = tnProduct.handle;
-        } else if (tnProduct.handle?.es) {
-          handle = tnProduct.handle.es;
-        }
-
-        productLinks.set(localVariant.product_id, {
-          localProductId: localVariant.product_id,
-          tnProductId,
-          handle,
-          images: Array.isArray(tnProduct.images)
-            ? tnProduct.images
-            : [],
-        });
+            tnProduct,
+          }
+        );
       }
     }
 
     /*
-     * 5. ACTUALIZAR IDs DE VARIANTES
-     */
-    let variantUpdateErrors = 0;
-
-    const VARIANT_BATCH_SIZE = 25;
-
-    for (
-      let i = 0;
-      i < variantUpdates.length;
-      i += VARIANT_BATCH_SIZE
-    ) {
-      const batch = variantUpdates.slice(
-        i,
-        i + VARIANT_BATCH_SIZE
-      );
-
-      await Promise.all(
-        batch.map(async (update) => {
-          const { error } = await supabase
-            .from("product_variants")
-            .update({
-              tiendanube_variant_id:
-                update.tiendanube_variant_id,
-              tiendanube_stock:
-                update.tiendanube_stock,
-            })
-            .eq("id", update.id);
-
-          if (error) {
-            variantUpdateErrors++;
-
-            console.error(
-              "[Tiendanube] Error actualizando variante",
-              update.id,
-              error.message
-            );
-          }
-        })
-      );
-    }
-
-    /*
-     * 6. OBTENER IMAGEN PRINCIPAL DE CADA PRODUCTO
+     * IMÁGENES
      *
-     * Primero usamos images incluidas en /products.
-     * Si no existen, consultamos /products/{id}/images.
+     * Primero usamos las imágenes que ya vinieron
+     * con GET /products.
+     *
+     * Sólo consultamos el endpoint individual si
+     * realmente faltan.
      */
+    const productsToUpdate: ProductLink[] =
+      [];
+
     let imagesFound = 0;
-    let imagesUpdated = 0;
     let productsWithoutImages = 0;
     let imageFetchErrors = 0;
-    let productUpdateErrors = 0;
 
     const imageErrors: Array<{
       productId: string;
@@ -338,199 +341,192 @@ export async function POST() {
       detail: string;
     }> = [];
 
-    const productEntries = Array.from(
-      productLinks.values()
-    );
-
-    const PRODUCT_BATCH_SIZE = 5;
-
     for (
-      let i = 0;
-      i < productEntries.length;
-      i += PRODUCT_BATCH_SIZE
+      const {
+        localProductId,
+        tnProduct,
+      } of productLinks.values()
     ) {
-      const batch = productEntries.slice(
-        i,
-        i + PRODUCT_BATCH_SIZE
-      );
+      let imageUrl =
+        chooseMainImage(
+          tnProduct.images
+        );
 
-      await Promise.all(
-        batch.map(async (item) => {
-          let imageUrl =
-            chooseMainImage(item.images) ?? null;
-
-          /*
-           * Si /products ya trajo imágenes,
-           * no hacemos otra request.
-           */
-          if (!imageUrl) {
-            try {
-              const imagesResponse = await fetch(
-                tiendanubeApiUrl(
-                  connection.store_id,
-                  `products/${item.tnProductId}/images`
-                ),
-                {
-                  method: "GET",
-                  headers,
-                  cache: "no-store",
-                }
-              );
-
-              if (imagesResponse.ok) {
-                const imagePayload: unknown =
-                  await imagesResponse.json();
-
-                const images =
-                  extractImages(imagePayload);
-
-                imageUrl =
-                  chooseMainImage(images);
-              } else {
-                imageFetchErrors++;
-
-                const detail = (
-                  await imagesResponse.text()
-                ).slice(0, 300);
-
-                imageErrors.push({
-                  productId: item.tnProductId,
-                  status: imagesResponse.status,
-                  detail:
-                    detail ||
-                    "Tiendanube no devolvió detalle",
-                });
-
-                console.error(
-                  "[Tiendanube] Error leyendo imágenes",
-                  item.tnProductId,
-                  imagesResponse.status,
-                  detail
-                );
+      /*
+       * Sólo hacemos request extra
+       * si /products no trajo imagen.
+       */
+      if (!imageUrl) {
+        try {
+          const imageResponse =
+            await fetch(
+              tiendanubeApiUrl(
+                connection.store_id,
+                `products/${tnProduct.id}/images`
+              ),
+              {
+                headers,
+                cache: "no-store",
               }
-            } catch (error) {
-              imageFetchErrors++;
-
-              const detail =
-                error instanceof Error
-                  ? error.message
-                  : "Error desconocido";
-
-              imageErrors.push({
-                productId: item.tnProductId,
-                detail,
-              });
-
-              console.error(
-                "[Tiendanube] Excepción leyendo imágenes",
-                item.tnProductId,
-                error
-              );
-            }
-          }
-
-          if (imageUrl) {
-            imagesFound++;
-          } else {
-            productsWithoutImages++;
-          }
-
-          /*
-           * 7. ACTUALIZAR PRODUCTO LOCAL
-           */
-          const updateData: Record<string, unknown> = {
-            tiendanube_product_id:
-              item.tnProductId,
-            tiendanube_last_sync_at:
-              new Date().toISOString(),
-          };
-
-          if (item.handle) {
-            updateData.tiendanube_handle =
-              item.handle;
-          }
-
-          /*
-           * Solamente modificamos image_url si
-           * realmente encontramos una imagen.
-           *
-           * Así nunca borramos una foto existente
-           * por un fallo temporal de la API.
-           */
-          if (imageUrl) {
-            updateData.image_url = imageUrl;
-          }
-
-          const { error: updateError } =
-            await supabase
-              .from("products")
-              .update(updateData)
-              .eq("id", item.localProductId);
-
-          if (updateError) {
-            productUpdateErrors++;
-
-            console.error(
-              "[Tiendanube] Error actualizando producto",
-              item.localProductId,
-              updateError.message
             );
 
-            return;
-          }
+          if (imageResponse.ok) {
+            const imagePayload: unknown =
+              await imageResponse.json();
 
-          if (imageUrl) {
-            imagesUpdated++;
+            const images =
+              extractImages(
+                imagePayload
+              );
+
+            imageUrl =
+              chooseMainImage(images);
+          } else {
+            imageFetchErrors++;
+
+            const detail =
+              (
+                await imageResponse.text()
+              ).slice(0, 300);
+
+            imageErrors.push({
+              productId:
+                String(tnProduct.id),
+
+              status:
+                imageResponse.status,
+
+              detail:
+                detail ||
+                "Sin detalle",
+            });
           }
-        })
-      );
+        } catch (error) {
+          imageFetchErrors++;
+
+          imageErrors.push({
+            productId:
+              String(tnProduct.id),
+
+            detail:
+              error instanceof Error
+                ? error.message
+                : "Error desconocido",
+          });
+        }
+      }
+
+      if (imageUrl) {
+        imagesFound++;
+      } else {
+        productsWithoutImages++;
+      }
+
+      productsToUpdate.push({
+        id: localProductId,
+
+        tiendanube_product_id:
+          String(tnProduct.id),
+
+        tiendanube_handle:
+          getHandle(tnProduct),
+
+        image_url:
+          imageUrl,
+      });
     }
 
     /*
-     * 8. RESULTADO
+     * IMPORTANTE
+     *
+     * UNA SOLA llamada a Supabase
+     * para actualizar:
+     *
+     * - 105 variantes
+     * - 27 productos
+     * - imágenes
+     * - IDs Tiendanube
+     * - stock de referencia
      */
+    const {
+      data: bulkResult,
+      error: bulkError,
+    } = await supabase.rpc(
+      "sync_tiendanube_catalog_bulk",
+      {
+        p_variants:
+          variantsToUpdate,
+
+        p_products:
+          productsToUpdate,
+      }
+    );
+
+    if (bulkError) {
+      throw new Error(
+        `Error guardando catálogo en Supabase: ${bulkError.message}`
+      );
+    }
+
+    const result =
+      bulkResult as {
+        variants_updated?: number;
+        products_updated?: number;
+      } | null;
+
     return NextResponse.json({
       ok: true,
 
-      tiendanubeProducts: tnProducts.length,
+      tiendanubeProducts:
+        tnProducts.length,
 
-      linkedProducts: productLinks.size,
+      linkedProducts:
+        productLinks.size,
 
       linkedVariants,
 
       unmatchedVariants,
 
-      unmatchedSkus: unmatchedSkus.slice(0, 20),
-
       imagesFound,
 
-      imagesUpdated,
+      imagesUpdated:
+        result?.products_updated ?? 0,
 
       productsWithoutImages,
 
       imageFetchErrors,
 
-      variantUpdateErrors,
+      variantUpdateErrors: 0,
 
-      productUpdateErrors,
+      productUpdateErrors: 0,
 
-      imageErrors: imageErrors.slice(0, 10),
+      variantsUpdated:
+        result?.variants_updated ?? 0,
+
+      productsUpdated:
+        result?.products_updated ?? 0,
+
+      imageErrors:
+        imageErrors.slice(0, 10),
     });
   } catch (error) {
     console.error(
-      "[Tiendanube] sync-catalog error",
+      "[Tiendanube] sync-catalog",
       error
     );
 
     return NextResponse.json(
       {
         ok: false,
+
         error:
           error instanceof Error
             ? error.message
-            : "Error inesperado sincronizando Tiendanube",
+            : "Error inesperado sincronizando catálogo",
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
