@@ -26,11 +26,11 @@ export function SyncAutomationButton() {
 
   return (
     <div className="space-y-3">
-      <button type="button" onClick={ensure} disabled={loading} className="rounded-lg bg-pink-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-pink-700 disabled:opacity-60">
-        {loading ? "Activando..." : "Activar / revisar sincronización automática"}
+      <button type="button" onClick={ensure} disabled={loading} className="pt-button-secondary inline-flex items-center px-4 text-sm disabled:opacity-60">
+        {loading ? "Revisando..." : "Activar / revisar automatización"}
       </button>
-      {message && <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">✓ {message}</div>}
-      {error && <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</div>}
+      {message && <div className="rounded-2xl border border-[#cfe8db] bg-[#f5fbf8] p-3 text-sm font-semibold text-[#36785b]">✓ {message}</div>}
+      {error && <div className="rounded-2xl border border-[#efc4ce] bg-[#fff7f8] p-3 text-sm font-semibold text-[#a94658]">{error}</div>}
     </div>
   );
 }

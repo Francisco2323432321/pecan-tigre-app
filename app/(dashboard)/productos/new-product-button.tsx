@@ -9,122 +9,38 @@ export default function NewProductButton() {
 
   async function handleCreate(formData: FormData) {
     setSaving(true);
-    try {
-      await createProduct(formData);
-      setOpen(false);
-    } finally {
-      setSaving(false);
-    }
+    try { await createProduct(formData); setOpen(false); }
+    finally { setSaving(false); }
   }
 
-  return (
-    <>
-      <button
-        onClick={() => setOpen(true)}
-        className="pt-button-primary inline-flex items-center px-4 py-2 text-sm"
-      >
-        + Nuevo producto
-      </button>
-
-      {open && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#4d2938]/25 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-2xl overflow-hidden rounded-3xl border border-[#f3d6e4] bg-white shadow-2xl">
-            <div className="flex items-center justify-between border-b border-[#f3d6e4] p-6">
-              <div>
-                <p className="text-xs font-bold tracking-[0.2em] text-[#c65082]">PECÁN TIGRE</p>
-                <h2 className="mt-1 text-xl font-semibold text-[#4d2938]">Nuevo producto</h2>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fff0f6] text-lg font-semibold text-[#a83f6d] transition hover:bg-[#fce7f0]"
-                aria-label="Cerrar"
-              >
-                ×
-              </button>
-            </div>
-
-            <form action={handleCreate} className="space-y-5 p-6">
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field label="Nombre">
-                  <input
-                    name="name"
-                    required
-                    placeholder="Ej. Nueces Chandler"
-                    className="pt-input"
-                  />
-                </Field>
-
-                <Field label="Código">
-                  <input
-                    name="code"
-                    placeholder="Ej. NUEZ-CHA"
-                    className="pt-input"
-                  />
-                </Field>
-
-                <Field label="Tipo">
-                  <select name="product_kind" defaultValue="INSUMO" className="pt-input">
-                    <option value="INSUMO">Materia prima</option>
-                    <option value="MIX">Mix</option>
-                    <option value="ELABORADO">Elaborado</option>
-                    <option value="COMBO">Combo</option>
-                  </select>
-                </Field>
-
-                <Field label="Control de stock">
-                  <select name="inventory_mode" defaultValue="PROPIO" className="pt-input">
-                    <option value="PROPIO">Stock propio</option>
-                    <option value="DERIVADO">Calculado por receta</option>
-                    <option value="PRODUCIDO">Elaborado previamente</option>
-                  </select>
-                </Field>
-
-                <Field label="Unidad base">
-                  <select name="base_unit" defaultValue="g" className="pt-input">
-                    <option value="g">Gramos</option>
-                    <option value="ml">Mililitros</option>
-                    <option value="u">Unidades</option>
-                  </select>
-                </Field>
-              </div>
-
-              <div className="rounded-2xl bg-[#fff8fb] p-4 text-sm leading-6 text-[#8d6878]">
-                Después de crear el producto vas a poder configurar presentaciones, precios, recetas y stock desde su ficha.
-              </div>
-
-              <div className="flex justify-end gap-3 border-t border-[#f3d6e4] pt-5">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  disabled={saving}
-                  className="rounded-xl border border-[#f3d6e4] px-5 py-3 text-sm font-semibold text-[#735261] transition hover:bg-[#fff8fb] disabled:opacity-50"
-                >
-                  Cancelar
-                </button>
-
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="rounded-xl bg-[#d96898] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#c65082] disabled:cursor-wait disabled:opacity-60"
-                >
-                  {saving ? "Creando..." : "Crear producto"}
-                </button>
-              </div>
-            </form>
-          </div>
+  return <>
+    <button onClick={() => setOpen(true)} className="pt-button-primary inline-flex items-center px-4 py-2 text-sm">+ Nuevo producto</button>
+    {open && <div className="fixed inset-0 z-[100] flex items-end justify-center bg-[#4d2938]/30 backdrop-blur-sm sm:items-center sm:p-4" onMouseDown={(event) => { if (event.currentTarget === event.target) setOpen(false); }}>
+      <div className="max-h-[94dvh] w-full overflow-y-auto rounded-t-[26px] border border-[#f3d6e4] bg-white shadow-2xl sm:max-w-2xl sm:rounded-[26px]">
+        <div className="flex items-center justify-between border-b border-[#f3d6e4] p-5 sm:p-6">
+          <div><p className="text-[10px] font-black tracking-[0.2em] text-[#c65082]">PECÁN TIGRE</p><h2 className="mt-1 text-xl font-black text-[#4d2938]">Nuevo producto</h2></div>
+          <button type="button" onClick={() => setOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-full bg-[#fff0f6] text-lg font-semibold text-[#a83f6d]">×</button>
         </div>
-      )}
-    </>
-  );
+        <form action={handleCreate} className="space-y-5 p-5 sm:p-6">
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Nombre"><input name="name" required placeholder="Ej. Almendras" className="pt-input" /></Field>
+            <Field label="Código interno"><input name="code" placeholder="Ej. ALM" className="pt-input" /></Field>
+            <Field label="SKU"><input name="sku" placeholder="Ej. FS-ALM-01" className="pt-input" /></Field>
+            <Field label="Precio"><input name="price" type="number" min="0" step="0.01" placeholder="0" className="pt-input" /></Field>
+            <Field label="Tipo"><select name="product_kind" defaultValue="INSUMO" className="pt-input"><option value="INSUMO">Materia prima</option><option value="MIX">Mix</option><option value="ELABORADO">Elaborado</option><option value="COMBO">Combo</option></select></Field>
+            <Field label="Control de stock"><select name="inventory_mode" defaultValue="PROPIO" className="pt-input"><option value="PROPIO">Stock propio</option><option value="DERIVADO">Calculado por receta / combo</option><option value="PRODUCIDO">Elaborado previamente</option></select></Field>
+            <Field label="Forma actual de venta"><select name="base_unit" defaultValue="g" className="pt-input"><option value="g">Peso · packs de 100 g</option><option value="u">Unidad</option></select></Field>
+          </div>
+          <div className="rounded-2xl border border-[#f1dce6] bg-[#fff8fb] p-4 text-sm leading-6 text-[#80616f]">
+            Por ahora la app trabaja con <strong>100 g</strong> o <strong>unidad</strong>. Si Tiendanube detecta varias variantes en un producto, las mostrará como advertencia y evitará sincronizar stock de forma automática hasta configurarlas.
+          </div>
+          <div className="flex justify-end gap-3 border-t border-[#f3d6e4] pt-5"><button type="button" onClick={() => setOpen(false)} disabled={saving} className="pt-button-secondary px-5">Cancelar</button><button type="submit" disabled={saving} className="pt-button-primary px-5">{saving ? "Creando…" : "Crear producto"}</button></div>
+        </form>
+      </div>
+    </div>}
+  </>;
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label>
-      <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-[#8d6878]">{label}</span>
-      {children}
-    </label>
-  );
+  return <label><span className="pt-label">{label}</span>{children}</label>;
 }

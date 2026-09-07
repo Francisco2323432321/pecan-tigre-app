@@ -7,9 +7,9 @@ export default async function DashboardLayout({ children }: { children: React.Re
   if (!profile || !profile.active) redirect("/login");
 
   return (
-    <div className="min-h-dvh w-full bg-[#fff8fb] md:flex">
+    <div className="min-h-dvh w-full bg-transparent md:flex">
       <AppNavigation name={profile.full_name || "Usuario"} role={profile.role} />
-      <div className="min-w-0 flex-1 pt-14 md:pt-0">
+      <div className="min-w-0 flex-1 pt-[62px] md:pt-0">
         <div className="min-h-dvh w-full pb-[82px] md:pb-0">{children}</div>
       </div>
     </div>

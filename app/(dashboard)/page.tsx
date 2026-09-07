@@ -30,8 +30,8 @@ export default async function HomePage() {
       <section className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
         <Quick href="/ventas/nueva" icon="sales" title="Nueva venta" subtitle="Crear pedido" />
         <Quick href="/compras/nueva" icon="purchases" title="Cargar compra" subtitle="Ingresar stock" />
-        <Quick href="/stock" icon="stock" title="Stock" subtitle="Ver disponible" />
-        <Quick href="/combos" icon="combo" title="Nuevo combo" subtitle="Calcular margen" />
+        <Quick href="/productos?view=stock" icon="stock" title="Stock" subtitle="Edición rápida" />
+        <Quick href="/productos?view=formulas" icon="combo" title="Fórmulas" subtitle="Mix, combo y receta" />
       </section>
 
       <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
@@ -92,7 +92,7 @@ export default async function HomePage() {
                   ))}
                 </div>
               )}
-              <Link href="/stock" className="mt-3 inline-flex text-xs font-bold text-[#ad416f]">Abrir stock →</Link>
+              <Link href="/productos?view=stock" className="mt-3 inline-flex text-xs font-bold text-[#ad416f]">Abrir stock →</Link>
             </div>
           </div>
 
@@ -108,7 +108,7 @@ export default async function HomePage() {
       </section>
 
       <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-        <Quick href="/stock/conteo" icon="stock" title="Conteo" subtitle="Control semanal" />
+        <Quick href="/productos?view=stock" icon="stock" title="Stock rápido" subtitle="Corregir inventario" />
         <Quick href="/productos" icon="products" title="Productos" subtitle="Precios y recetas" />
         <Quick href="/pedidos/preparacion" icon="print" title="Preparación" subtitle="Hoja / PDF" />
         <Quick href="/compras" icon="purchases" title="Compra" subtitle="Ingresar mercadería" />
@@ -118,7 +118,7 @@ export default async function HomePage() {
 }
 
 function Metric({ label, value, detail, icon, emphasized, danger }: { label: string; value: string; detail: string; icon: Parameters<typeof Icon>[0]["name"]; emphasized?: boolean; danger?: boolean }) {
-  return <div className={`rounded-[18px] border p-4 shadow-[0_6px_20px_rgba(92,43,65,0.045)] sm:p-5 ${emphasized ? "border-[#edbfd2] bg-gradient-to-br from-[#fff0f6] to-white" : danger ? "border-[#f0c5ce] bg-[#fff8f9]" : "border-[#efd8e2] bg-white"}`}>
+  return <div className={`rounded-[22px] border p-4 shadow-[0_8px_24px_rgba(82,42,60,0.05)] sm:p-5 ${emphasized ? "border-[#e8b8cc] bg-gradient-to-br from-[#fff0f6] via-white to-white" : danger ? "border-[#edc2cb] bg-gradient-to-br from-[#fff7f8] to-white" : "border-[#ecd6e0] bg-white"}`}>
     <div className="flex items-center justify-between gap-2"><p className="text-xs font-bold uppercase tracking-wide text-[#8c6e7b]">{label}</p><Icon name={icon} className={`h-4 w-4 ${danger ? "text-[#b9475f]" : "text-[#c35a86]"}`} /></div>
     <p className={`mt-2 text-2xl font-extrabold tracking-[-0.035em] sm:text-3xl ${danger ? "text-[#a94658]" : "text-[#3e2833]"}`}>{value}</p>
     <p className="mt-1 text-[11px] text-[#987b88]">{detail}</p>
@@ -126,8 +126,8 @@ function Metric({ label, value, detail, icon, emphasized, danger }: { label: str
 }
 
 function Quick({ href, icon, title, subtitle }: { href: string; icon: Parameters<typeof Icon>[0]["name"]; title: string; subtitle: string }) {
-  return <Link href={href} className="rounded-2xl border border-[#efd8e2] bg-white p-3.5 transition active:scale-[0.99] md:hover:border-[#e6b2c8] md:hover:shadow-[0_8px_22px_rgba(92,43,65,0.06)]">
-    <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#fff0f6] text-[#bd4d7a]"><Icon name={icon} className="h-5 w-5" /></div>
-    <p className="mt-2.5 text-sm font-bold text-[#3e2833]">{title}</p><p className="mt-0.5 text-[11px] text-[#8d707d]">{subtitle}</p>
+  return <Link href={href} className="pt-card-interactive rounded-[20px] border border-[#ecd6e0] bg-white p-3.5 shadow-[0_6px_18px_rgba(82,42,60,.035)]">
+    <div className="flex h-10 w-10 items-center justify-center rounded-[14px] bg-gradient-to-br from-[#fff0f6] to-[#fde4ee] text-[#b84674] shadow-[inset_0_0_0_1px_rgba(224,166,190,.25)]"><Icon name={icon} className="h-5 w-5" /></div>
+    <p className="mt-2.5 text-sm font-black tracking-[-.015em] text-[#3d2932]">{title}</p><p className="mt-0.5 text-[11px] text-[#8d707d]">{subtitle}</p>
   </Link>;
 }

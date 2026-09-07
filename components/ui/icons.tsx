@@ -29,7 +29,8 @@ export type IconName =
   | "recipe"
   | "suppliers"
   | "upload"
-  | "calculator";
+  | "calculator"
+  | "finance";
 
 const paths: Record<IconName, React.ReactNode> = {
   home: <><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M9 21v-7h6v7"/></>,
@@ -61,6 +62,7 @@ const paths: Record<IconName, React.ReactNode> = {
   suppliers: <><path d="M3 8h12v11H3z"/><path d="M15 11h4l2 3v5h-6z"/><circle cx="7" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/></>,
   upload: <><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M5 20h14"/></>,
   calculator: <><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2M8 18h8"/></>,
+  finance: <><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/><path d="M16 14h2"/><path d="M7 3h10"/></>,
 };
 
 export function Icon({ name, className = "h-5 w-5", ...props }: { name: IconName } & SVGProps<SVGSVGElement>) {
