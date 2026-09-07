@@ -10,17 +10,26 @@ export default function PageHeader({
   actions?: React.ReactNode;
 }) {
   return (
-    <div className="mb-5 flex flex-col gap-4 sm:mb-6 sm:flex-row sm:items-end sm:justify-between">
+    <div className="mb-6 flex flex-col gap-4 xl:mb-7 xl:flex-row xl:items-end xl:justify-between">
       <div className="min-w-0">
         {eyebrow && (
-          <div className="mb-1.5 flex items-center gap-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#c84f80]" />
-            <p className="text-[10px] font-black uppercase tracking-[0.17em] text-[#a94570]">{eyebrow}</p>
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-[#eadff0] bg-white/80 px-3 py-1.5 shadow-[0_8px_18px_rgba(38,23,46,.03)]">
+            <span className="h-2 w-2 rounded-full bg-[linear-gradient(135deg,#6d5cff_0%,#ca4d87_100%)]" />
+            <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8f6193]">{eyebrow}</p>
           </div>
         )}
-        <h1 className="text-[26px] font-black leading-[1.08] tracking-[-0.045em] text-[#39262f] sm:text-[34px]">{title}</h1>
-        {description && <p className="mt-2 max-w-3xl text-[13px] font-medium leading-6 text-[#7a606c] sm:text-sm">{description}</p>}
+
+        <h1 className="text-[30px] font-black leading-[1.02] tracking-[-0.06em] text-[#261d31] sm:text-[38px] xl:text-[44px]">
+          {title}
+        </h1>
+
+        {description && (
+          <p className="mt-3 max-w-4xl text-[14px] leading-6 text-[#6b6076] sm:text-[15px]">
+            {description}
+          </p>
+        )}
       </div>
+
       {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
     </div>
   );

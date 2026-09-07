@@ -16,18 +16,19 @@ export default function SectionNav({ items }: { items: SectionNavItem[] }) {
   const current = `${pathname}${query ? `?${query}` : ""}`;
 
   return (
-    <div className="pt-scrollbar-none pt-toolbar mb-5 flex gap-1.5 overflow-x-auto p-1.5">
+    <div className="pt-scrollbar-none pt-toolbar mb-6 flex gap-2 overflow-x-auto p-2">
       {items.map((item) => {
         const active = item.match ? current.includes(item.match) : current === item.href;
         return (
           <Link
             key={item.href}
             href={item.href}
-            className={`shrink-0 rounded-[13px] px-3.5 py-2 text-xs font-black transition-all ${
+            className={[
+              "shrink-0 rounded-full px-4 py-2.5 text-xs font-black transition-all",
               active
-                ? "bg-[#4b2d3a] text-white shadow-[0_6px_16px_rgba(75,45,58,.15)]"
-                : "text-[#775b68] hover:bg-[#fff1f7] hover:text-[#a43c69]"
-            }`}
+                ? "bg-[linear-gradient(135deg,#6d5cff_0%,#ca4d87_100%)] text-white shadow-[0_12px_24px_rgba(95,76,255,.2)]"
+                : "bg-white/70 text-[#65596f] hover:bg-white hover:text-[#2f2337]",
+            ].join(" ")}
           >
             {item.label}
           </Link>

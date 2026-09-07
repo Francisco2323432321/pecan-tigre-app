@@ -97,7 +97,7 @@ export function SyncProductsButton() {
         type="button"
         onClick={syncProducts}
         disabled={loading}
-        className="rounded-lg bg-pink-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-pink-700 disabled:cursor-not-allowed disabled:opacity-60"
+        className="pt-button-primary px-4 text-sm disabled:cursor-not-allowed disabled:opacity-60"
       >
         {loading
           ? "Sincronizando productos..."
@@ -105,13 +105,13 @@ export function SyncProductsButton() {
       </button>
 
       {message && (
-        <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-800">
+        <div className="rounded-[18px] border border-[#d6ece0] bg-[#f5fbf8] p-3 text-sm text-[#2f7356]">
           ✓ {message}
         </div>
       )}
 
       {error && (
-        <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+        <div className="rounded-[18px] border border-[#f0d2d9] bg-[#fff7f9] p-3 text-sm text-[#b14359]">
           {error}
         </div>
       )}
