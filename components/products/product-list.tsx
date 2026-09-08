@@ -67,7 +67,7 @@ export default function ProductList({ products }: { products: Product[] }) {
             <input
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              className="pt-input bg-white pl-10"
+              className="pt-input bg-white !pl-11"
               placeholder="Buscar producto, SKU o categoría…"
             />
           </div>

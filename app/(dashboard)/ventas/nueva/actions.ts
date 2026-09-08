@@ -1,4 +1,24 @@
 "use server";
+
+import { revalidatePath } from "next/cache";
+import { createClient } from "@/lib/supabase/server";
 import { syncTiendanubeStock } from "@/lib/tiendanube-stock";
-import {redirect} from "next/navigation";import {revalidatePath} from "next/cache";import {createClient} from "@/lib/supabase/server";
-export async function createManualSale(formData:FormData){const payload=JSON.parse(String(formData.get("payload")??"{}"));const supabase=await createClient();const{data,error}=await supabase.rpc("create_manual_order",{p_payload:payload});if(error)throw new Error(error.message);await syncTiendanubeStock().catch((e)=>console.error("[auto-stock] venta",e));revalidatePath("/ventas");revalidatePath("/pedidos");revalidatePath("/stock");revalidatePath("/");redirect(`/ventas/${String(data)}`)}
+
+export async function createManualSale(payload: Record<string, unknown>) {
+  try {
+    const supabase = await createClient();
+    const { data, error } = await supabase.rpc("create_manual_order", { p_payload: payload });
+    if (error) return { ok: false, message: error.message };
+    const id = String(data ?? "");
+    if (!id) return { ok: false, message: "La venta no devolvió un identificador." };
+    await syncTiendanubeStock().catch((error) => console.error("[auto-stock] venta", error));
+    revalidatePath("/ventas");
+    revalidatePath("/pedidos");
+    revalidatePath("/productos");
+    revalidatePath("/stock");
+    revalidatePath("/");
+    return { ok: true, id };
+  } catch (error) {
+    return { ok: false, message: error instanceof Error ? error.message : "No se pudo crear la venta." };
+  }
+}

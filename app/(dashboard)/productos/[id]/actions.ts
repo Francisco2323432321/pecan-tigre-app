@@ -25,6 +25,8 @@ export async function updateProduct(formData: FormData) {
     code: nullable(formData.get("code")),
     description: nullable(formData.get("description")),
     category: nullable(formData.get("category")),
+    product_kind: String(formData.get("product_kind") ?? "INSUMO"),
+    inventory_mode: String(formData.get("inventory_mode") ?? "PROPIO"),
     minimum_stock: Number(formData.get("minimum_stock") ?? 0),
     current_cost: Number(formData.get("current_cost") ?? 0),
     image_url: nullable(formData.get("image_url")),
@@ -33,6 +35,8 @@ export async function updateProduct(formData: FormData) {
     active: formData.get("active") === "on",
   }).eq("id", id);
   if (error) throw new Error(error.message);
+  const { error: reviewError } = await supabase.rpc("mark_product_reviewed_v3", { p_product_id: id });
+  if (reviewError) console.warn("No se pudo marcar el producto como revisado:", reviewError.message);
   refresh(id);
 }
 

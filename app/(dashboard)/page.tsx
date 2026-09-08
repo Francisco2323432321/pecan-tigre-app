@@ -5,6 +5,7 @@ import { formatMoney, formatQuantity } from "@/lib/format";
 import PageHeader from "@/components/ui/page-header";
 import StatusBadge from "@/components/ui/status-badge";
 import { Icon } from "@/components/ui/icons";
+import ProductCarousel from "@/components/products/product-carousel";
 
 function shortDayLabel(value: string) {
   return new Intl.DateTimeFormat("es-AR", {
@@ -40,7 +41,7 @@ export default async function HomePage() {
       .limit(6),
     supabase
       .from("product_stock_overview")
-      .select("id,name,base_unit,available_base,minimum_stock,inventory_mode,product_kind,current_cost")
+      .select("id,name,base_unit,available_base,minimum_stock,inventory_mode,product_kind,current_cost,image_url")
       .eq("active", true)
       .limit(300),
     supabase
@@ -121,26 +122,21 @@ export default async function HomePage() {
 
       <section className="mb-4 grid gap-3 lg:grid-cols-[1.4fr_1fr]">
         <div className="pt-card-elevated overflow-hidden p-5 sm:p-6">
-          <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
-            <div className="max-w-2xl">
-              <div className="inline-flex items-center gap-2 rounded-full bg-[#f3efff] px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#6d5cff]">
-                <span className="h-2 w-2 rounded-full bg-[#6d5cff]" />
-                Hoy en operación
+          <div className="grid gap-5 lg:grid-cols-[1fr_320px] lg:items-stretch">
+            <div className="flex min-w-0 flex-col justify-center">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full bg-[#f3efff] px-3 py-1 text-[11px] font-black uppercase tracking-[0.14em] text-[#6d5cff]">
+                <span className="h-2 w-2 rounded-full bg-[#6d5cff]" /> Hoy en operación
               </div>
-              <h2 className="mt-3 text-[28px] font-black leading-[1.03] tracking-[-0.05em] text-[#261d31] sm:text-[34px]">
-                {formatMoney(salesToday)} vendidos hoy
-              </h2>
-              <p className="mt-2 max-w-xl text-sm leading-6 text-[#6b6076]">
-                {todayOrders.length} pedidos cargados, {paidToday} ya pagados y {toPrepare} esperando preparación.
-              </p>
+              <h2 className="mt-3 text-[28px] font-black leading-[1.03] tracking-[-0.05em] text-[#261d31] sm:text-[34px]">{formatMoney(salesToday)} vendidos hoy</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-[#6b6076]">{todayOrders.length} pedidos cargados, {paidToday} ya pagados y {toPrepare} esperando preparación.</p>
+              <div className="mt-5 grid grid-cols-2 gap-2 xl:grid-cols-4">
+                <Quick href="/ventas/nueva" icon="sales" title="Nueva venta" subtitle="Registrar pedido" />
+                <Quick href="/compras/nueva" icon="purchases" title="Cargar compra" subtitle="Ingresar stock" />
+                <Quick href="/productos?view=stock" icon="stock" title="Stock rápido" subtitle="Editar físico" />
+                <Quick href="/productos?view=formulas" icon="combo" title="Fórmulas" subtitle="Mix y combos" />
+              </div>
             </div>
-
-            <div className="grid grid-cols-2 gap-2 sm:gap-3">
-              <Quick href="/ventas/nueva" icon="sales" title="Nueva venta" subtitle="Registrar pedido" />
-              <Quick href="/compras/nueva" icon="purchases" title="Cargar compra" subtitle="Ingresar stock" />
-              <Quick href="/productos?view=stock" icon="stock" title="Stock rápido" subtitle="Editar físico" />
-              <Quick href="/productos?view=formulas" icon="combo" title="Fórmulas" subtitle="Mix y combos" />
-            </div>
+            <ProductCarousel slides={stock.filter((p) => Boolean(p.image_url)).slice(0, 8).map((p) => ({ id: p.id, name: p.name, image_url: String(p.image_url) }))} />
           </div>
         </div>
 

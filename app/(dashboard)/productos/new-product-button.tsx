@@ -25,9 +25,9 @@ export default function NewProductButton() {
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nombre"><input name="name" required placeholder="Ej. Almendras" className="pt-input" /></Field>
             <Field label="Código interno"><input name="code" placeholder="Ej. ALM" className="pt-input" /></Field>
-            <Field label="SKU"><input name="sku" placeholder="Ej. FS-ALM-01" className="pt-input" /></Field>
+            <Field label="SKU (automático si lo dejás vacío)"><input name="sku" placeholder="Se generará automáticamente" className="pt-input" /></Field>
             <Field label="Precio"><input name="price" type="number" min="0" step="0.01" placeholder="0" className="pt-input" /></Field>
-            <Field label="Tipo"><select name="product_kind" defaultValue="INSUMO" className="pt-input"><option value="INSUMO">Materia prima</option><option value="MIX">Mix</option><option value="ELABORADO">Elaborado</option><option value="COMBO">Combo</option></select></Field>
+            <Field label="Tipo"><select name="product_kind" defaultValue="INSUMO" className="pt-input"><option value="INSUMO">Producto simple / comprado</option><option value="MIX">Mix</option><option value="ELABORADO">Elaborado</option><option value="COMBO">Combo</option></select></Field>
             <Field label="Control de stock"><select name="inventory_mode" defaultValue="PROPIO" className="pt-input"><option value="PROPIO">Stock propio</option><option value="DERIVADO">Calculado por receta / combo</option><option value="PRODUCIDO">Elaborado previamente</option></select></Field>
             <Field label="Forma actual de venta"><select name="base_unit" defaultValue="g" className="pt-input"><option value="g">Peso · packs de 100 g</option><option value="u">Unidad</option></select></Field>
           </div>

@@ -39,7 +39,7 @@ const pageTitles: Array<[string, string]> = [
   ["/", "Inicio"],
 ];
 
-export default function AppNavigation({ name, role }: { name: string; role: string }) {
+export default function AppNavigation({ name, role, logoUrl = "/brand/logo.svg" }: { name: string; role: string; logoUrl?: string }) {
   const pathname = usePathname();
   const isAdmin = role === "ADMIN";
 
@@ -66,7 +66,7 @@ export default function AppNavigation({ name, role }: { name: string; role: stri
           >
             <div className="flex items-center gap-3">
               <div className="flex h-14 w-14 items-center justify-center rounded-[20px] bg-white shadow-[0_10px_24px_rgba(95,76,255,.12)]">
-                <img src="/brand/logo.svg" alt="Pecán Tigre" className="h-8 w-8 object-contain" />
+                <img src={logoUrl} alt="Pecán Tigre" className="h-8 w-8 object-contain" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-[10px] font-black uppercase tracking-[0.18em] text-[#8f6f9a]">Pecán Tigre</p>

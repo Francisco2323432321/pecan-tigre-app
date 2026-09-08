@@ -46,7 +46,7 @@ export default function StockList({ items }: { items: StockItem[] }) {
 
   return <section className="pt-card overflow-hidden">
     <div className="border-b border-[#f2e0e8] p-3 sm:p-4">
-      <div className="relative"><Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a58a96]" /><input value={query} onChange={(e) => setQuery(e.target.value)} className="pt-input pl-9" placeholder="Buscar producto o código…" /></div>
+      <div className="relative"><Icon name="search" className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a58a96]" /><input value={query} onChange={(e) => setQuery(e.target.value)} className="pt-input !pl-11" placeholder="Buscar producto o código…" /></div>
       <div className="pt-scrollbar-none mt-3 flex gap-2 overflow-x-auto pb-0.5">{filters.map(([key, label]) => <button key={key} onClick={() => setFilter(key)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-bold transition ${filter === key ? "bg-[#d65f91] text-white" : "bg-[#fff1f7] text-[#895f72]"}`}>{label}</button>)}</div>
     </div>
 

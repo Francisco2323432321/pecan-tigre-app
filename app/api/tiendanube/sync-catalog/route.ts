@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { tiendanubeAdmin, tiendanubeApiUrl } from "@/lib/tiendanube";
 
 type TNImage = { id?: number | string; src?: string | null; position?: number | null };
-type TNVariant = { id: number | string; sku?: string | null; stock?: number | null; values?: unknown[] | null };
+type TNVariant = { id: number | string; sku?: string | null; stock?: number | null; price?: string | number | null; promotional_price?: string | number | null; values?: unknown[] | null };
 type TNProduct = { id: number | string; name?: { es?: string } | string | null; handle?: { es?: string } | string | null; images?: TNImage[] | null; variants?: TNVariant[] | null };
 type LocalVariant = {
   id: string;
@@ -90,6 +90,34 @@ export async function POST() {
     for (const tnProduct of tnProducts) {
       let localProductId = localProductByTnProductId.get(String(tnProduct.id)) ?? null;
       const tnVariants = tnProduct.variants ?? [];
+
+      // Producto nuevo en Tiendanube: si tiene una sola variante, lo importamos como
+      // producto simple de 100 g y lo marcamos para revisión. No adivinamos productos
+      // con múltiples variantes.
+      if (!localProductId && tnVariants.length === 1) {
+        const remote = tnVariants[0];
+        const remoteName = typeof tnProduct.name === "string" ? tnProduct.name : tnProduct.name?.es ?? `Producto ${tnProduct.id}`;
+        const { data: createdId, error: createError } = await supabase.rpc("import_tiendanube_product_v3", {
+          p_name: remoteName,
+          p_tiendanube_product_id: String(tnProduct.id),
+          p_tiendanube_variant_id: String(remote.id),
+          p_sku: normalizeSku(remote.sku) || null,
+          p_price: Number(remote.promotional_price ?? remote.price ?? 0) || 0,
+          p_image_url: chooseMainImage(tnProduct.images),
+          p_handle: getHandle(tnProduct),
+        });
+        if (!createError && createdId) {
+          localProductId = String(createdId);
+          localProductByTnProductId.set(String(tnProduct.id), localProductId);
+          const { data: createdVariant } = await supabase.from("product_variants").select("id,product_id,sku,base_quantity,tiendanube_variant_id,products!inner(tiendanube_product_id,base_unit)").eq("product_id", localProductId).eq("active", true).limit(1).maybeSingle();
+          if (createdVariant) {
+            const localVariant = createdVariant as unknown as LocalVariant;
+            byTnVariantId.set(String(remote.id), localVariant);
+            if (localVariant.sku) bySku.set(localVariant.sku, localVariant);
+            variantsByLocalProduct.set(localProductId, [localVariant]);
+          }
+        }
+      }
 
       for (const tnVariant of tnVariants) {
         const sku = normalizeSku(tnVariant.sku);

@@ -21,7 +21,7 @@ export default function StockCountForm({ items }: { items: Item[] }) {
 
   return <div className="grid gap-4 xl:grid-cols-[1fr_320px]">
     <section className="pt-card overflow-hidden">
-      <div className="border-b border-[#f2e0e8] p-3 sm:p-4"><div className="relative"><Icon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a58a96]"/><input value={query} onChange={(e) => setQuery(e.target.value)} className="pt-input pl-9" placeholder="Buscar producto…" /></div></div>
+      <div className="border-b border-[#f2e0e8] p-3 sm:p-4"><div className="relative"><Icon name="search" className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a58a96]"/><input value={query} onChange={(e) => setQuery(e.target.value)} className="pt-input !pl-11" placeholder="Buscar producto…" /></div></div>
       <div className="divide-y divide-[#f5e7ed]">{visible.map((item) => {
         const raw = values[item.id];
         const counted = raw === undefined || raw === "" ? null : Number(raw);

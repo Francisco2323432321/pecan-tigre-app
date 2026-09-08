@@ -1,102 +1,95 @@
-# Pecán Tigre · actualización 100 g / unidad + app unificada
+# Pecán Tigre V3 — actualización
 
-Esta versión parte de la app existente y reorganiza la operación diaria alrededor de cinco áreas: Productos, Ventas, Compras, Finanzas y Configuración.
+Esta carpeta contiene la versión V3 completa de la app y los SQL necesarios para dejar Supabase alineado con ella.
 
-## Antes de reemplazar archivos
+## Antes de empezar
 
-- Conservá tu carpeta `.git` actual si vas a mantener el mismo repositorio.
-- Conservá tu `.env.local` actual. Este ZIP no incluye secretos.
-- `node_modules`, `.next` y `dist` no vienen en el ZIP: se regeneran con npm/build.
+1. Hacé un backup de Supabase desde el panel.
+2. No borres usuarios manualmente.
+3. No reemplaces tus variables reales por `.env.example`: ese archivo solo documenta nombres de variables.
 
-## 1. Actualizar Supabase
+La limpieza V3 **no elimina `auth.users` ni `public.profiles`**. Tampoco elimina productos, ventas, compras ni movimientos históricos.
 
-Abrí `supabase/06-unified-products-finance.sql` y ejecutá **el contenido completo** en Supabase SQL Editor.
+## Orden exacto de SQL
 
-La migración:
-- crea el alta simple de productos 100 g / unidad;
-- agrega observación segura de futuras variantes de Tiendanube;
-- mejora la sincronización de catálogo y archiva presentaciones locales antiguas cuando Tiendanube ya tiene una sola opción;
-- crea la base protegida para conectar Mercado Pago en Finanzas.
+Ejecutá en **Supabase → SQL Editor**, uno por uno y en este orden:
 
-No borra las variantes históricas de la base: las desactiva cuando ya no existen en Tiendanube para conservar referencias de pedidos anteriores.
+1. `supabase/01-BASE-COMPLETA.sql`
+2. `supabase/04-tiendanube.sql`
+3. `supabase/05-tiendanube-sync.sql`
+4. `supabase/06-unified-products-finance.sql`
+5. `supabase/00-LIMPIEZA-V3-SIN-BORRAR-USUARIOS.sql`
+6. `supabase/07-v3-operational.sql`
+7. `supabase/08-VERIFICACION-V3.sql`
 
-## 2. Instalar y verificar
+Si un script da error, **no sigas con el siguiente**: guardá el mensaje exacto para corregirlo.
+
+### Qué limpia el script 00
+
+- conserva todos los usuarios y perfiles;
+- convierte el rol legado `VENTAS` a `OPERADOR`;
+- elimina únicamente la tabla de prueba `public.prueba`, si todavía existe;
+- archiva las presentaciones locales antiguas de 250 g / 500 g / 1 kg cuando el producto tiene una presentación de 100 g;
+- no borra esas variantes, para conservar referencias históricas;
+- elimina solamente eventos del sistema ya resueltos con más de 180 días.
+
+## Actualizar la app
+
+Después de terminar los SQL:
 
 ```bash
 npm install --no-audit --no-fund
 npm run build
 ```
 
-Después hacé commit/push normalmente para que Cloudflare despliegue.
+Si el build termina correctamente:
 
-## 3. Primera sincronización después del despliegue
-
-Entrá a **Configuración → Tiendanube** y ejecutá primero **Catálogo e imágenes** una vez.
-
-Esto es importante porque:
-- vuelve a vincular la única opción que dejaste en Tiendanube;
-- toma el SKU actual de Tiendanube;
-- archiva 250 g / 500 g / 1 kg locales antiguos cuando corresponda;
-- guarda una observación de las opciones actuales de Tiendanube.
-
-Luego ejecutá **Stock** una vez para verificar.
-
-Modelo actual:
-- producto por peso: stock Tiendanube = `floor(stock_disponible_en_gramos / 100)`;
-- producto por unidad: stock Tiendanube = `floor(unidades_disponibles)`.
-
-Si en el futuro un producto aparece con más de una variante en Tiendanube, Pecán Tigre la muestra como alerta y **pausa la sincronización automática de stock de ese producto** hasta que definamos su regla. Así no se descuenta inventario incorrectamente.
-
-## 4. Navegación nueva
-
-Menú principal:
-- Inicio
-- Productos
-- Ventas
-- Compras
-- Finanzas (solo ADMIN)
-- Configuración
-
-Productos concentra catálogo, Stock rápido, Mixes, Combos, Recetas y Producción.
-Ventas concentra ventas, pedidos, clientes y preparación.
-Compras concentra compras y proveedores.
-
-## 5. Finanzas / Mercado Pago
-
-La primera etapa está implementada con una conexión OAuth protegida para ADMIN. Todavía **no usa un saldo de Mercado Pago para calcular caja real**: eso se hará en una segunda etapa con movimientos/reportes financieros y conciliación.
-
-Para habilitar el botón de conexión agregá en Cloudflare:
-- `MERCADOPAGO_CLIENT_ID` (variable)
-- `MERCADOPAGO_CLIENT_SECRET` (secret)
-- `MERCADOPAGO_REDIRECT_URI` (variable)
-
-La redirect URI debe ser exactamente:
-
-```text
-https://TU-DOMINIO/api/mercadopago/callback
+```bash
+git add .
+git commit -m "Pecan Tigre V3"
+git push
 ```
 
-No pegues ni publiques el Client Secret en código o GitHub.
+Cloudflare debería desplegar la rama conectada automáticamente. Si usás el deploy manual de Vinext:
 
-## 6. Logo y favicon
-
-Podés reemplazar directamente:
-
-```text
-public/brand/logo.svg
-public/brand/favicon.svg
+```bash
+npm run build:vinext
+npm run deploy:vinext
 ```
 
-Manteniendo esos nombres, no necesitás modificar componentes.
+## Cambios principales incluidos
 
-## 7. Interfaz renovada
+- Venta manual corregida y redirección a la venta recién creada.
+- Vista de detalle de venta y remito para cliente imprimible / guardable como PDF.
+- Previsualización interna del pedido con desglose de recetas y preparación consolidada.
+- Productos por peso con presentación comercial normal de 100 g; variantes técnicas antiguas ocultas/archivadas.
+- SKU automático en nuevos productos y detección de duplicados/legados.
+- Ficha del producto reorganizada como **Datos del producto**.
+- Tipo operativo editable: simple/comprado, mix, elaborado o combo.
+- Stock rápido con dos modos: **Sumar/restar** y **Establecer stock**.
+- Campo de ajuste inicia en 0 y se separa del stock actual.
+- Confirmación visual de stock actualizado.
+- Nueva pestaña **Productos → Movimientos** con historial global.
+- Centro **Errores y alertas**: fotos, SKU, costos, margen, stock, recetas y Tiendanube.
+- Margen mínimo configurable, por defecto 20 %, y alertas ignorables por fingerprint.
+- Solo roles `ADMIN` y `OPERADOR`; el último ADMIN está protegido.
+- ADMIN puede gestionar roles desde la app.
+- Logo y favicon editables desde Configuración.
+- Tiendanube simplificada y webhooks de producto añadidos.
+- Carrusel liviano de imágenes en Inicio.
+- Botón Volver en pantallas internas.
+- Corrección de padding de buscadores.
+- Estilos de impresión A4 limpios.
 
-Esta entrega también incluye una renovación visual general:
-- navegación lateral más clara en escritorio y barra inferior optimizada en móvil;
-- botones, inputs, tarjetas, filtros y estados con una estética más consistente;
-- tipografía y jerarquía visual mejoradas;
-- catálogo en grilla con tarjetas cuadradas e imágenes protagonistas;
-- Stock rápido con búsqueda, controles +/- y guardado en bloque;
-- login y panel de inicio actualizados para una experiencia más limpia y ágil.
+## Notas importantes
 
-La paleta sigue siendo rosa pastel, pero con mayor contraste para conservar legibilidad.
+- Un producto importado automáticamente desde Tiendanube con una única variante entra como producto de 100 g y queda marcado **pendiente de revisión**. Confirmá su tipo/unidad desde su ficha, especialmente si en realidad se vende por unidad.
+- Si Tiendanube detecta varias variantes, la app no inventa una lógica de stock: crea una alerta para revisión.
+- Los SKU existentes no se renombran automáticamente para no romper referencias externas. Los SKU nuevos sí se generan automáticamente. Los SKU viejos `PT-...` aparecen como información para que puedas corregirlos desde el producto.
+- Los encabezados/pies que Chrome agrega al imprimir (URL, fecha, número de página) se desactivan desde la opción **Encabezados y pies de página** del cuadro de impresión del navegador.
+
+## Validación de esta entrega
+
+- Se revisaron 113 archivos TypeScript/TSX con el parser de TypeScript: 0 errores de sintaxis.
+- Se verificaron los imports internos `@/...`: 0 rutas faltantes.
+- El build completo no pudo ejecutarse dentro del entorno de preparación porque la instalación de dependencias quedó incompleta por timeout. Por eso el paso `npm run build` de arriba es obligatorio antes de hacer push.
